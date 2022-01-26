@@ -1,3 +1,5 @@
+from numpy import array
+
 import joblib
 import pandas as pd
 from datetime import datetime
@@ -9,6 +11,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn import linear_model
 
 import numpy as np
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
 
 
 def format_date(s: str) -> int:
@@ -47,9 +51,10 @@ print(transactions["CUSTOMER"].tail(20))
 # https://stackoverflow.com/questions/21491291/remove-all-quotes-within-values-in-pandas
 
 # Clean Transactions:
-# TODO further cleaning (?)
+# TODO clean end_customer
+
 #transactions = transactions.drop(transactions[(transactions.TEST_SET_ID).isnull()].index)
-transactions.fillna(0)
+#transactions.fillna(0)
 transactions["CUSTOMER"] = transactions["CUSTOMER"].map(lambda x: 0 if x == "NA" or x == "#NV" else x)
 transactions["CUSTOMER"] = transactions["CUSTOMER"].astype(np.int64)
 transactions['END_CUSTOMER'] = transactions['END_CUSTOMER'].fillna(0)
@@ -82,8 +87,7 @@ all = pd.merge(trans_geo, customers, how="left", left_on=['CUSTOMER', 'COUNTRY']
 print(all)
 
 ## Remove all the Test datasets, because they need to be predicted in the future
-# all = all.drop(all[all."OFFER_STATUS" == 'NA'].index)
-# all = all[all["OFFER_STATUS"] != "NA"]
+all = all[all["OFFER_STATUS"] != "NA"]
 
 print(all["OFFER_STATUS"])
 
@@ -92,11 +96,20 @@ all["OFFER_STATUS"] = all["OFFER_STATUS"].map(lambda x: 1 if str(x).strip().lowe
 
 print(all["OFFER_STATUS"])
 
-## Remove Columns that are not needed
+# Remove Columns that are not needed
 
-# Encode more variables with One hot encoding
-all = all.drop(["MO_ID", "SO_ID", "END_CUSTOMER", "CURRENCY", "SALES_BRANCH", "SALES_LOCATION", "PRICE_LIST", "TECH",
-                "OFFER_TYPE","SALES_OFFICE", "BUSINESS_TYPE", "CREATION_YEAR", "REV_CURRENT_YEAR", "REV_CURRENT_YEAR.1", "REV_CURRENT_YEAR.2"], axis=1)
+# Encode more variables with hot one encoding
+# Hot one encoding
+# TODO verify encoding
+categorical_cols = ['BUSINESS_TYPE', 'SALES_BRANCH', 'SALES_LOCATION', 'TECH', 'OFFER_TYPE']
+df = pd.get_dummies(all, columns=categorical_cols)
+
+print("\n\nOne hot encoding\n")
+print(df)
+
+# TODO encode mo_id, so_id, END_CUSTOMER,CURRENCY,SALES_BRANCH
+all = all.drop(["MO_ID", "SO_ID","SALES_LOCATION", "OFFER_TYPE", "SALES_OFFICE",
+                "CREATION_YEAR", "REV_CURRENT_YEAR", "REV_CURRENT_YEAR.1", "REV_CURRENT_YEAR.2"], axis=1)
 
 test = all[pd.to_numeric(all["TEST_SET_ID"], errors="coerce").notnull()]
 
@@ -112,10 +125,65 @@ all["OWNERSHIP"] = all["OWNERSHIP"].map(lambda x: 1 if str(x) == "Governmental" 
 
 all["COUNTRY"] = all["COUNTRY"].map(lambda x: 1 if str(x) == "Switzerland" else 0)
 
-# all["END_CUSTOMER"] = all["END_CUSTOMER"].map(lambda x: 0 if str(x) == "NA" else x)
-
 all["ISIC"] = all["ISIC"].map(lambda x: 0 if str(x) == "NA" else x)
 
+all["END_CUSTOMER"] = all["END_CUSTOMER"].map(lambda x: 10000 if str(x) == "NA"
+    else (10001 if str(x) == "No"
+          else (10002 if str(x) == "Yes"
+                else x)))
+
+all["CURRENCY"] = all["CURRENCY"].map(lambda x: 0 if str(x) == "Euro"
+    else (1 if str(x) == "US Dollar"
+          else (2 if str(x) == "Pound Sterling"
+                else 3)))
+# 0 = Euro; 1 = US Dollar; 2 = Pound Sterling; 3 = Chinese Yuan
+
+all["PRICE_LIST"] = all["PRICE_LIST"].map(lambda x: 0 if str(x) == "CMT End Customer"
+    else (1 if str(x) == "CMT Installer"
+          else (2 if str(x) == "SFT Standard"
+                else 3)))
+# 0 = CMT End Customer; 1 = CMT Installer; 2 = SFT Standard; 3 = Traffic public
+
+all["TECH"] = all["TECH"].map(lambda x: 0 if str(x) == "BP"
+    else (1 if str(x) == "C"
+          else (2 if str(x) == "F"
+                else 3)))
+# 0 = BP; 1 = C; 2 = F; 3 = S
+
+all["BUSINESS_TYPE"] = all["BUSINESS_TYPE"].map(lambda x: 0 if str(x) == "C"
+    else (1 if str(x) == "E"
+          else (2 if str(x) == "Exp"
+                else (3 if str(x) == "M"
+                      else (4 if str(x) == "Mig"
+                            else (5 if str(x) == "N"
+                                   else (6 if str(x) == "New"
+                                         else (7 if str(x) == "R"
+                                               else (8 if str(x) == "S"
+                                                     else 9)))))))))
+# 0 = C; 1 = E; 2 = Exp; 3 = M; 4 = Mig; 5 = N; 6 = New; 7 = R; 8 = S; 9 = T
+
+all["SALES_BRANCH"] = all["SALES_BRANCH"].map(lambda x: 0 if str(x) == "Branch Central"
+    else (1 if str(x) == "Branch East"
+          else (2 if str(x) == "Branch West"
+                else (3 if str(x) == "Centre-Est"
+                      else (4 if str(x) == "Enterprise Business France"
+                            else (5 if str(x) == "EPS CH"
+                                  else (6 if str(x) == "Grand Est"
+                                        else (7 if str(x) == "Grand Paris"
+                                              else (8 if str(x) == "Nord FR"
+                                                    else (9 if str(x) == "Quest"
+                                                          else (10 if str(x) == "SI"
+                                                                else (11 if str(x) == "Sud Quest"
+                                                                      else (12 if str(x) == "Sud-Est"
+                                                                            else (13))))))))))))))
+# 0 = Branch Central; 1 = Branch East; 2 = Branch West; 3 = Centre-Est;
+# 4 = Enterprise Business France; 5 = EPS CH; 6 = Grand Est; 7 = Grand Paris;
+# 8 = Nord FR; 9 = Quest; 10 = SI; 11 = Sud Quest; 12 = Sud-Est; 13 = LEER
+#Wurde bei Sales branch die leere zeile zuvor rausgenommen?!!!
+# - Sry das ich kein match-case gemacht hab oder so
+
+
+# "OFFER_TYPE", "SALES_OFFICE","SALES_LOCATION" hat zu viele variablen um das per hand zu machen = OnehOtencoding am besten
 
 ## Model training
 # TODO implement granularity -> suboffer
@@ -160,7 +228,9 @@ print("Richtig: " + str(right))
 print("Falsch: " + str(wrong))
 print("Insgesamt:" + str(wrong/nums))
 
-joblib.dump(predictions, "./random_forest.joblib")
+# TODO generate .csv with the results
+
+#joblib.dump(df, "./random_forest.joblib")
 
 
 
