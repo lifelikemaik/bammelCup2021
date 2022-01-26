@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 from datetime import datetime
 
@@ -46,6 +47,7 @@ print(transactions["CUSTOMER"].tail(20))
 # https://stackoverflow.com/questions/21491291/remove-all-quotes-within-values-in-pandas
 
 # Clean Transactions:
+# TODO further cleaning (?)
 #transactions = transactions.drop(transactions[(transactions.TEST_SET_ID).isnull()].index)
 transactions.fillna(0)
 transactions["CUSTOMER"] = transactions["CUSTOMER"].map(lambda x: 0 if x == "NA" or x == "#NV" else x)
@@ -116,19 +118,25 @@ all["ISIC"] = all["ISIC"].map(lambda x: 0 if str(x) == "NA" else x)
 
 
 ## Model training
+# TODO implement granularity -> suboffer
 
 X = all.drop('OFFER_STATUS', axis=1)
 y = all["OFFER_STATUS"]
+
+
 
 #
 # Split train and test set
 #
 train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
+
 model = RandomForestRegressor()
 
 model.fit(train_X, train_y)
 predictions = model.predict(val_X)
+
+
 
 #
 # Error-Estimation
@@ -151,5 +159,8 @@ for p in predictions:
 print("Richtig: " + str(right))
 print("Falsch: " + str(wrong))
 print("Insgesamt:" + str(wrong/nums))
+
+joblib.dump(predictions, "./random_forest.joblib")
+
 
 
