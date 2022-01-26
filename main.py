@@ -4,10 +4,10 @@ import joblib
 import pandas as pd
 from datetime import datetime
 
-from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn import tree
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn import linear_model
 
 import numpy as np
@@ -95,14 +95,12 @@ trans_geo = pd.merge(transactions, geo, how="left", left_on=['SALES_LOCATION'], 
 
 all = pd.merge(trans_geo, customers, how="left", left_on=['CUSTOMER', 'COUNTRY'], right_on=['CUSTOMER', 'COUNTRY'])
 
-#print(all)
 
 ## Remove all the Test datasets, because they need to be predicted in the future
 all = all[all["OFFER_STATUS"] != "NA"]
 
 
 all["OFFER_STATUS"] = all["OFFER_STATUS"].map(lambda x: 1 if str(x).strip().lower()[0] == 'w' else 0)
-
 
 
 # Remove Columns that are not needed
@@ -117,7 +115,7 @@ df = pd.get_dummies(all, columns=categorical_cols)
 #print(df)
 
 # TODO encode mo_id, so_id, END_CUSTOMER,CURRENCY,SALES_BRANCH
-all = all.drop(["MO_ID", "SO_ID","SALES_LOCATION", "OFFER_TYPE", "SALES_OFFICE",
+all = all.drop(["MO_ID", "SO_ID", "SALES_LOCATION", "OFFER_TYPE", "SALES_OFFICE",
                 "CREATION_YEAR", "REV_CURRENT_YEAR", "REV_CURRENT_YEAR.1", "REV_CURRENT_YEAR.2"], axis=1)
 
 test = all[pd.to_numeric(all["TEST_SET_ID"], errors="coerce").notnull()]
@@ -127,7 +125,7 @@ all = all[pd.to_numeric(all["TEST_SET_ID"], errors="coerce").isnull()]
 all = all.drop("TEST_SET_ID", axis=1)
 
 test = test.drop("TEST_SET_ID", axis=1)
-
+print(len(test))
 ## Encoding
 
 all["OWNERSHIP"] = all["OWNERSHIP"].map(lambda x: 1 if str(x) == "Governmental" else 0)
@@ -204,13 +202,6 @@ y = all["OFFER_STATUS"]
 #
 train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
-#print("size trainX " + len(train_X))
-#print("size trainY " + len(train_y))
-#print("size val X" + len(val_X))
-#print("\n\n val_X")
-#print(val_X)
-
-
 model = RandomForestRegressor()
 
 model.fit(train_X, train_y)
@@ -224,10 +215,15 @@ right = 0
 wrong = 0
 nums = 0
 
-print(type(predictions))
-print(type(val_y))
 
+print(list(all.columns))
+print(list(test.columns))
 
+forest = RandomForestClassifier()
+forest.fit(train_X, train_y)
+y_pred = forest.predict(val_X)
+
+print(accuracy_score(val_y, y_pred))
 
 for p in predictions:
     if round(p) == val_y.iloc[nums]:
