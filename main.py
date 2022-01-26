@@ -44,9 +44,9 @@ transactions["CUSTOMER"] = transactions["CUSTOMER"].map(lambda x: x.lstrip('"""'
 geo["COUNTRY"] = geo["COUNTRY"].map(lambda x: x.replace("CH", "Switzerland").replace("FR", "France"))
 
 
-print(customers.head())
+#print(customers.head())
 
-print(transactions["CUSTOMER"].tail(20))
+#print(transactions["CUSTOMER"].tail(20))
 
 # https://stackoverflow.com/questions/21491291/remove-all-quotes-within-values-in-pandas
 
@@ -60,6 +60,8 @@ transactions["CUSTOMER"] = transactions["CUSTOMER"].astype(np.int64)
 transactions['END_CUSTOMER'] = transactions['END_CUSTOMER'].fillna(0)
 transactions['ISIC'] = transactions['ISIC'].fillna(0)
 
+#print(transactions["END_CUSTOMER"])
+
 transactions['OFFER_STATUS'] = transactions['OFFER_STATUS'].fillna(0)
 transactions['SALES_LOCATION'] = transactions['SALES_LOCATION'].fillna(0)
 
@@ -72,29 +74,36 @@ customers['REV_CURRENT_YEAR'] = pd.to_numeric(customers['REV_CURRENT_YEAR'], err
 transactions["MO_CREATED_DATE"] = transactions["MO_CREATED_DATE"].map(lambda x: format_date(x))
 transactions["SO_CREATED_DATE"] = transactions["SO_CREATED_DATE"].map(lambda x: format_date(x))
 
+# Clean geo.csv
+geo = geo[geo['SALES_BRANCH'].notna()]
+geo = geo[geo['SALES_LOCATION'].notna()]
+geo = geo[geo['SALES_OFFICE'].notna()]
+
+
+
+#geo.to_csv(r'~/AnalyticsCup/pyramidProject/export_geo.csv', index=False, header=True)
+
 ## Left join transactions with geodata
 trans_geo = pd.merge(transactions, geo, how="left", left_on=['SALES_LOCATION'], right_on=['SALES_LOCATION'])
 
-print(trans_geo["COUNTRY"])
+#print(trans_geo["COUNTRY"])
 
-print(customers["COUNTRY"])
+#print(customers["COUNTRY"])
 
 
 ## Left join customer with transaction (customer id, country)
 
 all = pd.merge(trans_geo, customers, how="left", left_on=['CUSTOMER', 'COUNTRY'], right_on=['CUSTOMER', 'COUNTRY'])
 
-print(all)
+#print(all)
 
 ## Remove all the Test datasets, because they need to be predicted in the future
 all = all[all["OFFER_STATUS"] != "NA"]
 
-print(all["OFFER_STATUS"])
 
 all["OFFER_STATUS"] = all["OFFER_STATUS"].map(lambda x: 1 if str(x).strip().lower()[0] == 'w' else 0)
 
 
-print(all["OFFER_STATUS"])
 
 # Remove Columns that are not needed
 
@@ -104,8 +113,8 @@ print(all["OFFER_STATUS"])
 categorical_cols = ['BUSINESS_TYPE', 'SALES_BRANCH', 'SALES_LOCATION', 'TECH', 'OFFER_TYPE']
 df = pd.get_dummies(all, columns=categorical_cols)
 
-print("\n\nOne hot encoding\n")
-print(df)
+#print("\n\nOne hot encoding\n")
+#print(df)
 
 # TODO encode mo_id, so_id, END_CUSTOMER,CURRENCY,SALES_BRANCH
 all = all.drop(["MO_ID", "SO_ID","SALES_LOCATION", "OFFER_TYPE", "SALES_OFFICE",
@@ -174,13 +183,10 @@ all["SALES_BRANCH"] = all["SALES_BRANCH"].map(lambda x: 0 if str(x) == "Branch C
                                                     else (9 if str(x) == "Quest"
                                                           else (10 if str(x) == "SI"
                                                                 else (11 if str(x) == "Sud Quest"
-                                                                      else (12 if str(x) == "Sud-Est"
-                                                                            else (13))))))))))))))
+                                                                      else (12)))))))))))))
 # 0 = Branch Central; 1 = Branch East; 2 = Branch West; 3 = Centre-Est;
 # 4 = Enterprise Business France; 5 = EPS CH; 6 = Grand Est; 7 = Grand Paris;
-# 8 = Nord FR; 9 = Quest; 10 = SI; 11 = Sud Quest; 12 = Sud-Est; 13 = LEER
-#Wurde bei Sales branch die leere zeile zuvor rausgenommen?!!!
-# - Sry das ich kein match-case gemacht hab oder so
+# 8 = Nord FR; 9 = Quest; 10 = SI; 11 = Sud Quest; 12 = Sud-Est
 
 
 # "OFFER_TYPE", "SALES_OFFICE","SALES_LOCATION" hat zu viele variablen um das per hand zu machen = OnehOtencoding am besten
@@ -198,12 +204,17 @@ y = all["OFFER_STATUS"]
 #
 train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
+#print("size trainX " + len(train_X))
+#print("size trainY " + len(train_y))
+#print("size val X" + len(val_X))
+#print("\n\n val_X")
+#print(val_X)
+
 
 model = RandomForestRegressor()
 
 model.fit(train_X, train_y)
 predictions = model.predict(val_X)
-
 
 
 #
@@ -216,20 +227,24 @@ nums = 0
 print(type(predictions))
 print(type(val_y))
 
+
+
 for p in predictions:
     if round(p) == val_y.iloc[nums]:
         right = right + 1
     else:
         wrong = wrong + 1
-
     nums = nums + 1
+
+
+
 
 print("Richtig: " + str(right))
 print("Falsch: " + str(wrong))
 print("Insgesamt:" + str(wrong/nums))
 
 # TODO generate .csv with the results
-
+#data.to_csv(r'~/AnalyticsCup/pyramidProject/export_model.csv')
 #joblib.dump(df, "./random_forest.joblib")
 
 

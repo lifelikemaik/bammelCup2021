@@ -1,0 +1,45 @@
+COUNTRY,SALES_OFFICE,SALES_BRANCH,SALES_LOCATION
+Switzerland,Luzern,Branch Central,Luzern Central
+Switzerland,Zürich,Branch East,Zürich East
+Switzerland,Basel,Branch Central,Basel Central
+Switzerland,Geneva,Branch West,Geneva West
+Switzerland,Lausanne,Branch West,Lausanne West
+Switzerland,Sion,Branch West,Sion West
+Switzerland,St. Gallen,Branch East,St. Gallen East
+Switzerland,St. Blaise,Branch West,St. Blaise West
+Switzerland,Steinhausen,Branch Central,Steinhausen Central
+Switzerland,Bern,Branch Central,Bern Central
+Switzerland,Lausanne,Branch East,Lausanne East
+Switzerland,Granges-Paccot,Branch West,Granges-Paccot West
+Switzerland,Ticino,Branch Central,Ticino Central
+Switzerland,Lausanne,EPS CH,Lausanne EPS
+Switzerland,Zürich,EPS CH,Zürich EPS
+Switzerland,Bern,EPS CH,Bern EPS
+Switzerland,Steinhausen,Branch East,Steinhausen East
+France,Velizy,Grand Paris,Velizy Grand Paris
+France,Pau,Sud Ouest,Pau Sud Ouest
+France,Lille,Nord FR,Lille Nord FR
+France,Brest,Ouest,Brest Ouest
+France,BesanÃ§on,Centre-Est,BesanÃ§on Centre-Est
+France,Metz,Grand Est,Metz Grand Est
+France,Clermont,Centre-Est,Clermont Centre-Est
+France,Bezons,Grand Paris,Bezons Grand Paris
+France,Toulouse,Sud Ouest,Toulouse Sud Ouest
+France,Nice,Sud-Est,Nice Sud-Est
+France,Nantes,Ouest,Nantes Ouest
+France,Aix,Sud-Est,Aix Sud-Est
+France,Bordeaux,Sud Ouest,Bordeaux Sud Ouest
+France,Rouen,Nord FR,Rouen Nord FR
+France,Grenoble,Centre-Est,Grenoble Centre-Est
+France,Tours,Ouest,Tours Ouest
+France,Strasbourg,Grand Est,Strasbourg Grand Est
+France,Dijon,Centre-Est,Dijon Centre-Est
+France,Export,Grand Paris,Export Grand Paris
+France,Lyon,Centre-Est,Lyon Centre-Est
+France,Vertical Market,Enterprise Business France,Vertical Market Enterprise Business France
+France,Montpellier,Sud Ouest,Montpellier Sud Ouest
+France,Poitiers,Sud Ouest,Poitiers Sud Ouest
+France,Limoges,Sud Ouest,Limoges Sud Ouest
+France,Others Functions,Enterprise Business France,Others Functions Enterprise Business France
+France,Monaco,Sud-Est,Monaco Sud-Est
+France,Velizy,SI,Velizy SI
