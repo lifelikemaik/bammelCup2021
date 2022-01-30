@@ -1,18 +1,13 @@
-from numpy import array
-
-import joblib
 import pandas as pd
 from datetime import datetime
-
-from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, accuracy_score
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn import tree
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn import linear_model
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
 
 
 def format_date(s: str) -> int:
@@ -35,9 +30,7 @@ transactions = pd.read_csv('transactions.csv', names=['MO_ID', 'SO_ID', 'CUSTOME
                                                       'OFFER_STATUS', 'COSTS_PRODUCT_D', 'COSTS_PRODUCT_E',
                                                       'SALES_LOCATION', 'TEST_SET_ID'], header=None, skiprows=1)
 
-customers = pd.read_csv('customers.csv',
-                        names=['CUSTOMER', 'REV_CURRENT_YEAR', 'REV_CURRENT_YEAR.1', 'REV_CURRENT_YEAR.2',
-                               'CREATION_YEAR', 'OWNERSHIP', 'COUNTRY', 'CURRENCY'], header=None, skiprows=1)
+customers = pd.read_csv('customers.csv')
 
 transactions["CUSTOMER"] = transactions["CUSTOMER"].map(lambda x: x.lstrip('"""').rstrip('"""'))
 
@@ -62,7 +55,7 @@ transactions['ISIC'] = transactions['ISIC'].fillna(0)
 
 #print(transactions["END_CUSTOMER"])
 
-transactions['OFFER_STATUS'] = transactions['OFFER_STATUS'].fillna(0)
+#transactions['OFFER_STATUS'] = transactions['OFFER_STATUS'].fillna(0)
 transactions['SALES_LOCATION'] = transactions['SALES_LOCATION'].fillna(0)
 
 # Clean Customers:
@@ -108,10 +101,33 @@ all["OFFER_STATUS"] = all["OFFER_STATUS"].map(lambda x: 1 if str(x).strip().lowe
 # Encode more variables with hot one encoding
 # Hot one encoding
 # TODO verify encoding
-categorical_cols = ['BUSINESS_TYPE', 'SALES_BRANCH', 'SALES_LOCATION', 'TECH', 'OFFER_TYPE']
-df = pd.get_dummies(all, columns=categorical_cols)
+categorical_cols = [
+    'BUSINESS_TYPE', 'SALES_OFFICE', 'SALES_LOCATION', 'TECH', 'OFFER_TYPE', 'ISIC',
+    'PRICE_LIST', 'OWNERSHIP', 'COUNTRY', 'CURRENCY'
+]
 
-#print("\n\nOne hot encoding\n")
+for col in categorical_cols:
+    train_df1[col] = train_df1[col].astype(str)
+    test_df1[col] = test_df1[col].astype(str)
+# df = pd.get_dummies(all, columns=categorical_cols)
+df = train_df1 # pd.concat([train_df1, pd.get_dummies(train_df1, columns=categorical_cols)], axis=1)
+encoder = OneHotEncoder(handle_unknown='ignore')
+
+rev_cols = ['REV_CURRENT_YEAR', 'REV_CURRENT_YEAR.1', 'REV_CURRENT_YEAR.2']
+
+rev_transformer = Pipeline(
+    steps=[("imputer", SimpleImputer(strategy="median")), ("scaler", MinMaxScaler())]
+)
+
+col_transformer = ColumnTransformer(
+    transformers=[
+        ("cat", encoder, categorical_cols),
+        ("rev", rev_transformer, rev_cols)
+    ]
+)
+
+# 1773 1773 1999 --> Nullwerte
+
 #print(df)
 
 # TODO encode mo_id, so_id, END_CUSTOMER,CURRENCY,SALES_BRANCH
@@ -127,61 +143,61 @@ all = all.drop("TEST_SET_ID", axis=1)
 test = test.drop("TEST_SET_ID", axis=1)
 print(len(test))
 ## Encoding
-
-all["OWNERSHIP"] = all["OWNERSHIP"].map(lambda x: 1 if str(x) == "Governmental" else 0)
-
-all["COUNTRY"] = all["COUNTRY"].map(lambda x: 1 if str(x) == "Switzerland" else 0)
-
-all["ISIC"] = all["ISIC"].map(lambda x: 0 if str(x) == "NA" else x)
-
-all["END_CUSTOMER"] = all["END_CUSTOMER"].map(lambda x: 10000 if str(x) == "NA"
-    else (10001 if str(x) == "No"
-          else (10002 if str(x) == "Yes"
-                else x)))
-
-all["CURRENCY"] = all["CURRENCY"].map(lambda x: 0 if str(x) == "Euro"
-    else (1 if str(x) == "US Dollar"
-          else (2 if str(x) == "Pound Sterling"
-                else 3)))
-# 0 = Euro; 1 = US Dollar; 2 = Pound Sterling; 3 = Chinese Yuan
-
-all["PRICE_LIST"] = all["PRICE_LIST"].map(lambda x: 0 if str(x) == "CMT End Customer"
-    else (1 if str(x) == "CMT Installer"
-          else (2 if str(x) == "SFT Standard"
-                else 3)))
-# 0 = CMT End Customer; 1 = CMT Installer; 2 = SFT Standard; 3 = Traffic public
-
-all["TECH"] = all["TECH"].map(lambda x: 0 if str(x) == "BP"
-    else (1 if str(x) == "C"
-          else (2 if str(x) == "F"
-                else 3)))
-# 0 = BP; 1 = C; 2 = F; 3 = S
-
-all["BUSINESS_TYPE"] = all["BUSINESS_TYPE"].map(lambda x: 0 if str(x) == "C"
-    else (1 if str(x) == "E"
-          else (2 if str(x) == "Exp"
-                else (3 if str(x) == "M"
-                      else (4 if str(x) == "Mig"
-                            else (5 if str(x) == "N"
-                                   else (6 if str(x) == "New"
-                                         else (7 if str(x) == "R"
-                                               else (8 if str(x) == "S"
-                                                     else 9)))))))))
-# 0 = C; 1 = E; 2 = Exp; 3 = M; 4 = Mig; 5 = N; 6 = New; 7 = R; 8 = S; 9 = T
-
-all["SALES_BRANCH"] = all["SALES_BRANCH"].map(lambda x: 0 if str(x) == "Branch Central"
-    else (1 if str(x) == "Branch East"
-          else (2 if str(x) == "Branch West"
-                else (3 if str(x) == "Centre-Est"
-                      else (4 if str(x) == "Enterprise Business France"
-                            else (5 if str(x) == "EPS CH"
-                                  else (6 if str(x) == "Grand Est"
-                                        else (7 if str(x) == "Grand Paris"
-                                              else (8 if str(x) == "Nord FR"
-                                                    else (9 if str(x) == "Quest"
-                                                          else (10 if str(x) == "SI"
-                                                                else (11 if str(x) == "Sud Quest"
-                                                                      else (12)))))))))))))
+#
+# all["OWNERSHIP"] = all["OWNERSHIP"].map(lambda x: 1 if str(x) == "Governmental" else 0)
+#
+# all["COUNTRY"] = all["COUNTRY"].map(lambda x: 1 if str(x) == "Switzerland" else 0)
+#
+# all["ISIC"] = all["ISIC"].map(lambda x: 0 if str(x) == "NA" else x)
+#
+# all["END_CUSTOMER"] = all["END_CUSTOMER"].map(lambda x: 10000 if str(x) == "NA"
+#     else (10001 if str(x) == "No"
+#           else (10002 if str(x) == "Yes"
+#                 else x)))
+#
+# all["CURRENCY"] = all["CURRENCY"].map(lambda x: 0 if str(x) == "Euro"
+#     else (1 if str(x) == "US Dollar"
+#           else (2 if str(x) == "Pound Sterling"
+#                 else 3)))
+# # 0 = Euro; 1 = US Dollar; 2 = Pound Sterling; 3 = Chinese Yuan
+#
+# all["PRICE_LIST"] = all["PRICE_LIST"].map(lambda x: 0 if str(x) == "CMT End Customer"
+#     else (1 if str(x) == "CMT Installer"
+#           else (2 if str(x) == "SFT Standard"
+#                 else 3)))
+# # 0 = CMT End Customer; 1 = CMT Installer; 2 = SFT Standard; 3 = Traffic public
+#
+# all["TECH"] = all["TECH"].map(lambda x: 0 if str(x) == "BP"
+#     else (1 if str(x) == "C"
+#           else (2 if str(x) == "F"
+#                 else 3)))
+# # 0 = BP; 1 = C; 2 = F; 3 = S
+#
+# all["BUSINESS_TYPE"] = all["BUSINESS_TYPE"].map(lambda x: 0 if str(x) == "C"
+#     else (1 if str(x) == "E"
+#           else (2 if str(x) == "Exp"
+#                 else (3 if str(x) == "M"
+#                       else (4 if str(x) == "Mig"
+#                             else (5 if str(x) == "N"
+#                                    else (6 if str(x) == "New"
+#                                          else (7 if str(x) == "R"
+#                                                else (8 if str(x) == "S"
+#                                                      else 9)))))))))
+# # 0 = C; 1 = E; 2 = Exp; 3 = M; 4 = Mig; 5 = N; 6 = New; 7 = R; 8 = S; 9 = T
+#
+# all["SALES_BRANCH"] = all["SALES_BRANCH"].map(lambda x: 0 if str(x) == "Branch Central"
+#     else (1 if str(x) == "Branch East"
+#           else (2 if str(x) == "Branch West"
+#                 else (3 if str(x) == "Centre-Est"
+#                       else (4 if str(x) == "Enterprise Business France"
+#                             else (5 if str(x) == "EPS CH"
+#                                   else (6 if str(x) == "Grand Est"
+#                                         else (7 if str(x) == "Grand Paris"
+#                                               else (8 if str(x) == "Nord FR"
+#                                                     else (9 if str(x) == "Quest"
+#                                                           else (10 if str(x) == "SI"
+#                                                                 else (11 if str(x) == "Sud Quest"
+#                                                                       else (12)))))))))))))
 # 0 = Branch Central; 1 = Branch East; 2 = Branch West; 3 = Centre-Est;
 # 4 = Enterprise Business France; 5 = EPS CH; 6 = Grand Est; 7 = Grand Paris;
 # 8 = Nord FR; 9 = Quest; 10 = SI; 11 = Sud Quest; 12 = Sud-Est
@@ -202,11 +218,6 @@ y = all["OFFER_STATUS"]
 #
 train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
-model = RandomForestRegressor()
-
-model.fit(train_X, train_y)
-predictions = model.predict(val_X)
-
 
 #
 # Error-Estimation
@@ -225,19 +236,21 @@ y_pred = forest.predict(val_X)
 
 print(accuracy_score(val_y, y_pred))
 
-for p in predictions:
-    if round(p) == val_y.iloc[nums]:
-        right = right + 1
-    else:
-        wrong = wrong + 1
-    nums = nums + 1
+res = clf.predict(test_df1.drop(["OFFER_STATUS", "TEST_SET_ID"], axis=1))
+res2 = test_df1[['TEST_SET_ID']].astype(int).rename(columns={'TEST_SET_ID': 'id'})
+res2['prediction'] = res
 
 
 
 
-print("Richtig: " + str(right))
-print("Falsch: " + str(wrong))
-print("Insgesamt:" + str(wrong/nums))
+
+# with open('predictions_the_r_tists_1.csv', 'w', newline='') as file:
+#     writer = csv.writer(file)
+#     writer.writerow(header)
+#     for i in ids:
+#         data = [i, ]
+#         writer.writerow(data)
+
 
 # TODO generate .csv with the results
 #data.to_csv(r'~/AnalyticsCup/pyramidProject/export_model.csv')
